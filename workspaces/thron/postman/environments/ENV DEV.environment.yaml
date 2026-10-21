@@ -1,0 +1,4 @@
+name: ENV DEV
+values:
+  - key: pippo
+    value: ''

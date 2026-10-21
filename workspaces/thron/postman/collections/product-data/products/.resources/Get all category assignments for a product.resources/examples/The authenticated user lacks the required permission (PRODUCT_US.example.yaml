@@ -1,0 +1,27 @@
+$kind: http-example
+name: The authenticated user lacks the required permission (PRODUCT_USER) or the PIM module is not active.
+request:
+  url: "{{baseUrl}}/products/:id/assets"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <API Key>
+      description: "Added as a part of security scheme: apikey"
+  pathVariables:
+    id: ""
+response:
+  statusCode: 403
+  statusText: Forbidden
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "",
+        "status": 0,
+        "title": ""
+      }
+order: 3000

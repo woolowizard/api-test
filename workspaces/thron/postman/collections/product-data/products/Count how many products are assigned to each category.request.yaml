@@ -1,0 +1,26 @@
+$kind: http-request
+description: |-
+  Returns the number of products assigned to each of the specified category paths.
+
+  **Input:** Provide an array of category paths (or just a catalog code). Categories that don't exist are silently excluded from the results.
+
+  **includeChildren option:** When `true`, the count for each category also includes products assigned to any of its descendants.
+url: "{{baseUrl}}/product-data/products/categories/_count"
+method: POST
+body:
+  type: json
+  content: "//Category paths to count and options. Max 1000 unique paths.\r
+
+    {\r
+
+    \    \"includeChildren\": true,\r
+
+    \    \"items\": [\r
+
+    \        \"string\"\r
+
+    \    ]\r
+
+    }"
+examples: ./.resources/Count how many products are assigned to each category.resources/examples
+order: 4000

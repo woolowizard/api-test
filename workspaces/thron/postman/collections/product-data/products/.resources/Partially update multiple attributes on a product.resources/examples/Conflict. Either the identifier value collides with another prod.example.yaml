@@ -1,0 +1,81 @@
+$kind: http-example
+name: Conflict. Either the identifier value collides with another product, or there was a concurrent modification (retry the request).
+request:
+  url: "{{baseUrl}}/products/:id/attributes/:attributeId"
+  method: PUT
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <API Key>
+      description: "Added as a part of security scheme: apikey"
+  pathVariables:
+    id: ""
+    attributeId: ""
+  body:
+    type: json
+    content: |-
+      {
+        "attributes": [
+          {
+            "code": "example_attribute-1",
+            "boolean": true,
+            "identifier": "my-product-unique-1",
+            "locale": "string",
+            "longText": "Example of long text.",
+            "mediaGallery": [
+              "string",
+              "string"
+            ],
+            "multiSelect": [
+              "string",
+              "string"
+            ],
+            "number": 104.015,
+            "productReference": [
+              "string",
+              "string"
+            ],
+            "shortText": "Example of short text.",
+            "simpleSelect": "string"
+          },
+          {
+            "code": "example_attribute-1",
+            "boolean": true,
+            "identifier": "my-product-unique-1",
+            "locale": "string",
+            "longText": "Example of long text.",
+            "mediaGallery": [
+              "string",
+              "string"
+            ],
+            "multiSelect": [
+              "string",
+              "string"
+            ],
+            "number": 104.015,
+            "productReference": [
+              "string",
+              "string"
+            ],
+            "shortText": "Example of short text.",
+            "simpleSelect": "string"
+          }
+        ]
+      }
+response:
+  statusCode: 409
+  statusText: Conflict
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "code": "",
+        "status": 0,
+        "title": ""
+      }
+order: 6000

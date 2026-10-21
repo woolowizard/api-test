@@ -1,0 +1,70 @@
+$kind: http-request
+description: |-
+  Searches products using advanced filter criteria (conditions on attribute values, families, variations, categories, hierarchy levels, etc.).
+
+  This is the most powerful query endpoint. Use it when you need to filter products by attribute values or combine multiple conditions.
+
+  **Search structure:**  
+  The `criteria` object contains `groups` of `conditions`. Groups are combined with OR logic; conditions within a group are combined with AND logic.  
+  Each condition targets a specific attribute type (shortText, number, simpleSelect, etc.) or a system field (family, hierarchyLevel, createdAt, lastModifiedAt). A condition must have exactly one target type (attribute type or system field).
+
+  **Pagination:** Use the `cursor` field from the response's `next` to retrieve subsequent pages.  
+  ⚠️ `offset`\-based pagination is deprecated and may cause timeouts on large datasets. Always prefer cursor-based pagination.
+
+  **Eventual consistency:** This endpoint uses a search-optimized index. After creating or updating products, there may be a brief delay (typically < 1 second) before the change appears in search results.
+
+  **Attribute projection:** Use the `attributes` field to specify which attribute codes to return in the results. If omitted, products are returned without attribute values (only base fields).
+
+  **Expansions:** Use the `expand` body field to include additional related data in the response:
+
+  - `categories` — includes the full category tree paths the product is assigned to
+      
+
+  **Attribute rights:**
+
+  - **Search criteria:** You cannot use `RESTRICTED` attributes as filter conditions. Doing so returns HTTP 400 with a `RestrictedAttributesError`. Attributes with `CAN_SEE` or `CAN_MODIFY` can be used in search criteria.
+      
+  - **Attribute projection:** If you request a `RESTRICTED` attribute in the `attributes` field, it is silently excluded from results (no error, simply omitted). `CAN_SEE` and `CAN_MODIFY` attributes are returned normally.
+url: "{{baseUrl}}/products/_search?showInheritedAttributes=true"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+queryParams:
+  - key: showInheritedAttributes
+    value: "true"
+    description: "If true and the requested attribute codes include inherited attributes, those inherited values are also returned (marked with 'inherited: true'). Default: false."
+body:
+  type: json
+  content: |-
+    //Search criteria including filter conditions, pagination (cursor/limit), sorting, and attribute projection. See the Search schema for full details.
+    {
+        "criteria": {
+            "locale": "it-IT",
+            "groups": [
+                {
+                    "conditions": [
+                        {
+                            "hierarchyLevel": {
+                                "operator": "IN",
+                                "values": [
+                                    "MASTER"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "attributes": [
+            "sku",
+            "fabric_care",
+            "erp_material_code",
+            "material_group"
+        ],
+        "limit": 100,
+        "sortBy": "lastModifiedAt",
+        "sortOrder": "DESC"
+    }
+examples: ./.resources/Advanced search for products with structured filter criteria.resources/examples
+order: 1000

@@ -1,0 +1,101 @@
+$kind: http-request
+description: |-
+  Creates a new product in the PIM system.
+
+  A **product** is a structured set of attribute values.  
+  Every product must belong to a **family** — a schema that defines which attributes the product can have and their types.
+
+  **Product hierarchy levels:**
+
+  - `SIMPLE` — A standalone product with no parent/child relationships.
+      
+  - `MASTER` — The top-level parent in a model-variant structure.
+      
+  - `VARIATION-GROUP` — An intermediate grouping (optional, only when variation has 2 levels). Groups variants under a master. Has its own attributes plus inherits from the master.
+      
+  - `VARIANT` — The child unit. Has its own attributes plus inherits from its ancestor(s) (master and, eventually, variation-group).
+      
+
+  For `MASTER`/`VARIATION-GROUP`/`VARIANT` products, you must provide a `variation` object referencing the variation schema and ancestor products.  
+  The product's attributes must include at least one attribute of type IDENTIFIER (a unique identifier).
+
+  **Attribute rights:** Each attribute has access rights resolved for the authenticated user.  
+  You can only provide values for attributes where your resolved right is `CAN_MODIFY`. Attempting to set a value on an attribute  
+  with `CAN_SEE` (read-only) or `RESTRICTED` (hidden) rights will result in HTTP 403.
+url: "{{baseUrl}}/product-data/products"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    //The product to create. Must include: family code, hierarchy level, attribures (at least exactly one IDENTIFIER attribute), and variation reference (if not SIMPLE).
+    {
+        "family": "bags",
+        "hierarchyLevel": "MASTER",
+        "variation": {
+            "code": "color"
+        },
+        "attributes": [
+            {
+                "code": "sku",
+                "identifier": "ARTTOTT0-CNC"
+            },
+            {
+                "code": "erp_category",
+                "simpleSelect": "037"
+            },
+            {
+                "code": "erp_macrocategory",
+                "simpleSelect": "whan"
+            },
+            {
+                "code": "erp_name",
+                "shortText": "ARTISTE MEDIUM TOTE"
+            },
+            {
+                "code": "gender",
+                "simpleSelect": "w"
+            },
+            {
+                "code": "erp_material_code",
+                "simpleSelect": "cnc"
+            },
+            {
+                "code": "erp_model_code",
+                "shortText": "ARTTOTT0"
+            },
+            {
+                "code": "midcode",
+                "shortText": "ITPELPAM1416MON"
+            },
+            {
+                "code": "erp_heels_height",
+                "number": null
+            },
+            {
+                "code": "erp_height",
+                "number": 19.0
+            },
+            {
+                "code": "erp_length",
+                "number": 29.0
+            },
+            {
+                "code": "erp_width",
+                "number": 13.0
+            },
+            {
+                "code": "heels_type",
+                "simpleSelect": null
+            },
+            {
+                "code": "dimensions",
+                "locale": "en-US",
+                "shortText": "29.00L x 19.00H x 13.00D cm"
+            }
+        ]
+    }
+examples: ./.resources/Create a new product.resources/examples
+order: 2000

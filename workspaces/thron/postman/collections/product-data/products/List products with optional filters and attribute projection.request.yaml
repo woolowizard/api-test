@@ -1,0 +1,75 @@
+$kind: http-request
+description: |-
+  Retrieves a paginated list of products.
+
+  By default, each product in the response contains only base fields: `id`, `createdAt`, `lastModifiedAt`, `family`, `hierarchyLevel`, and `variation`.  
+  To include specific attribute values, use the `attributeFields` parameter.
+
+  **Filtering:**
+
+  - `ids` — retrieve specific products by their technical IDs or identifiers
+      
+  - `familyIds` — filter by family (schema) codes
+      
+  - `variationIds` — filter by variation (model-variant schema) codes
+      
+  - `contentId` — find all products that reference a specific DAM asset
+      
+
+  **Pagination:** Use `cursor` from the `next` field of a previous response to get the next page.
+
+  **Note:** All query parameter values must be URL-encoded.
+
+  **Attribute rights:** If you request an attribute in `attributeFields` that is `RESTRICTED` for your user, it is silently excluded from the response (no error, simply omitted).  
+  Attributes with `CAN_SEE` or `CAN_MODIFY` rights are returned normally.
+url: "{{baseUrl}}/product-data/products"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: multiValSeparator
+    value: ""
+    disabled: true
+    description: Separator character for multi-value parameters. Defaults to ','. Change this if your identifier values contain commas. Must be exactly 1 character.
+  - key: ids
+    value: ""
+    disabled: true
+    description: Comma-separated product identifiers to retrieve. Accepts technical IDs (UUIDs) or identifiers in format {attributeCode}:{value} (case-insensitive on value). URL-encode values containing / + or spaces. Max 100 items.
+  - key: attributeFields
+    value: ""
+    disabled: true
+    description: Comma-separated attribute codes to include in the response. Without this parameter, only base product fields are returned. Max 20 codes.
+  - key: familyIds
+    value: ""
+    disabled: true
+    description: Comma-separated family codes to filter by. A family is the schema that defines which attributes a product can have. Max 100.
+  - key: variationIds
+    value: ""
+    disabled: true
+    description: Comma-separated variation codes to filter by. A variation defines the model-variant structure . Only returns products belonging to these variation schemas. Max 100.
+  - key: contentId
+    value: ""
+    disabled: true
+    description: Filter by DAM asset UUID. Returns only products that have this asset in one of their MediaGallery attributes.
+  - key: cursor
+    value: ""
+    disabled: true
+    description: Opaque pagination token. Use the value from the 'next' field of a previous response to fetch the next page. Omit for the first page.
+  - key: limit
+    value: ""
+    disabled: true
+    description: Maximum number of products per page.
+  - key: showInheritedAttributes
+    value: ""
+    disabled: true
+    description: "If true and the product is a VARIANT or VARIATION-GROUP, also returns attribute values inherited from ancestor products (master/variation-group). Only applies to attributes listed in attributeFields. Default: false."
+  - key: expand
+    value: ""
+    disabled: true
+    description: "Comma-separated list of additional data to include. Supported: 'categories' (adds the full category tree paths for each product)."
+  - key: sort
+    value: ""
+    disabled: true
+    description: "Sorting criteria. Format: {field}{Direction}."
+examples: ./.resources/List products with optional filters and attribute projection.resources/examples
+order: 1000

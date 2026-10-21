@@ -1,0 +1,35 @@
+$kind: http-example
+name: Array of {path, count} pairs. Only paths with matches are included.
+request:
+  url: ""
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \    \"includeChildren\": true,\r
+
+      \    \"items\": [\r
+
+      \        \"string\"\r
+
+      \    ]\r
+
+      }"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+          "items": [
+              {
+                  "count": 0,
+                  "path": "string"
+              }
+          ]
+      }
+order: 1000

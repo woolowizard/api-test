@@ -1,0 +1,27 @@
+$kind: http-request
+description: |-
+  Retrieves a paginated list of digital assets linked to this product through its MediaGallery attributes.
+
+  Each asset includes metadata, multilingual locale data, delivery URLs (thumbnails, streaming), and source file information.
+
+  Use `assetIds` to filter for specific assets within the product. Without it, all linked assets are returned.
+url: "{{baseUrl}}/product-data/products/:id/assets?assetIds=string,string&cursor=string&limit=100"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: assetIds
+    value: string,string
+    description: "The asset ids. Note: The system accepts unique technical id or the prettyid or even the externalId that consists of a key field and a value separated by a colon (id: :). The value only could be not unique, so the user can specify the identification label on the key field. A maximum of 100 assets can be requested."
+  - key: cursor
+    value: string
+    description: Opaque pagination token. Use the value from the 'next' field of a previous response to fetch the next page. Omit for the first page.
+  - key: limit
+    value: "100"
+    description: Maximum number of assets per page.
+pathVariables:
+  - key: id
+    value: string
+    description: Product technical ID (UUID) or identifier in format {attributeCode}:{value}. URL-encode if value contains / + or spaces.
+examples: ./.resources/List DAM assets linked to a product.resources/examples
+order: 8000

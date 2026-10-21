@@ -1,0 +1,72 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/products"
+  method: POST
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <API Key>
+      description: "Added as a part of security scheme: apikey"
+  body:
+    type: json
+    content: |-
+      {
+        "attributes": [
+          {
+            "code": "example_attribute-1",
+            "boolean": true,
+            "identifier": "my-product-unique-1",
+            "locale": "string",
+            "longText": "Example of long text.",
+            "mediaGallery": [
+              "string",
+              "string"
+            ],
+            "multiSelect": [
+              "string",
+              "string"
+            ],
+            "number": 104.015,
+            "productReference": [
+              "string",
+              "string"
+            ],
+            "shortText": "Example of short text.",
+            "simpleSelect": "string"
+          }
+        ],
+        "family": "string",
+        "hierarchyLevel": "VARIATION-GROUP",
+        "variation": {
+          "code": "string",
+          "master": "string",
+          "variationGroup": "string"
+        }
+      }
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "status": 0,
+        "title": "",
+        "code": "",
+        "violations": [
+          {
+            "field": "Code",
+            "message": "Code must be longer than 50"
+          },
+          {
+            "field": "Code",
+            "message": "Code must be longer than 50"
+          }
+        ]
+      }
+order: 2000

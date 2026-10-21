@@ -1,0 +1,32 @@
+$kind: http-example
+name: Too many requests. The read rate limit has been exceeded. Retry after a short delay.
+request:
+  url: ""
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \    \"includeChildren\": true,\r
+
+      \    \"items\": [\r
+
+      \        \"string\"\r
+
+      \    ]\r
+
+      }"
+response:
+  statusCode: 429
+  statusText: Too Many Requests
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+          "code": "",
+          "status": 0,
+          "title": ""
+      }
+order: 5000
