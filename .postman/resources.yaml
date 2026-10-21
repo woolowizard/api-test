@@ -1,5 +1,8 @@
 workspace:
   id: 9272682c-17f0-4430-af57-b7a9d4e4d267
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
 cloudResources:
   collections:
     ../postman/collections/Coin Market Cap API: 42621175-427dd8ab-22f1-41b6-b3c6-812a5da3a474

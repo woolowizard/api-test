@@ -1,5 +1,5 @@
 $kind: http-request
-url: https://api.coinmarketcap.com/data-api/v3/topsearch/rank
+url: https://{{base_url}}/data-api/v3/topsearch/rank
 method: GET
 settings: {}
 order: 1000
