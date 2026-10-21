@@ -1,0 +1,6 @@
+name: DEV ENV
+values:
+  - key: host
+    value: ciccio
+  - key: api_key
+    value: ''
