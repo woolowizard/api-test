@@ -1,5 +1,6 @@
 # Collegamenti locali ai workspace Postman
 **/.postman/
+.postman
 
 # Metadati di macOS
 .DS_Store
