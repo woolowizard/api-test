@@ -1,0 +1,31 @@
+$kind: http-request
+description: |-
+  Step 1.4 d del documento: porta la main image (convenzione as-is: la `_02`) in prima posizione. `newPosition` è un `UnsignedInt64` e viaggia come stringa; 0 = prima posizione. L'operazione è asincrona (restituisce un `job`), gli errori stanno in `mediaUserErrors`.
+
+  L'esempio sposta `file_id` in testa alla gallery di `product_id`.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: beforeRequest
+    code: |-
+      const fail = (message) => { console.error(message); if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest(); fail(message); };
+      ["product_id", "file_id"].forEach((k) => { if (!pm.variables.get(k)) fail("manca " + k); });
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.productReorderMedia) || {};
+      pm.test("mediaUserErrors vuoto", () => pm.expect(payload.mediaUserErrors, JSON.stringify(payload.mediaUserErrors)).to.be.an("array").that.is.empty);
+      pm.test("job avviato", () => pm.expect(payload.job && payload.job.id).to.be.a("string"));
+      console.log("job:", JSON.stringify(payload.job));
+    language: text/javascript
+order: 4000

@@ -1,0 +1,6 @@
+$kind: collection
+description: |-
+  Flusso 1 del documento DataNext, step 1.4: catena di ingest asincrona IngestImages (fileCreate), FileStatus (poll fino a READY), AttachMedia (productSet a soli identifier + files, gallery completa), Reorder (main image in prima posizione). UpdateFileReferences e DeleteFiles coprono le correzioni puntuali e lo swap nell'aggiornamento di un asset.
+
+  Scope: read_files e write_files. L'app di organizzazione oggi non li ha: le mutation rispondono "Access denied" finché non vengono aggiunti (nuova versione dell'app + reinstallazione sullo store).
+order: 3000

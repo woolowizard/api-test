@@ -1,0 +1,35 @@
+$kind: http-request
+description: |-
+  Tutte le colorway (product) di un master-code: filtro `metafields.aqz.style_code:"<code>"` nella search syntax di `products(query:)`, match esatto.
+
+  Prerequisito: la metafield definition PRODUCT `aqz.style_code` deve avere la capability `adminFilterable` attiva (config/metafield-definitions.json, applicata con apply:metafields). Senza, Shopify non dà errore ma ignora il filtro e restituisce la lista non filtrata: il test "filtro applicato" lo rivela.
+
+  Il filtro passa dall'indice di ricerca (consistenza eventuale): un product appena scritto con productSet può comparire con qualche secondo di ritardo. Alternativa senza indice: productByIdentifier(customId aqz.model_color_sku) + metafield(aqz.colorways) { references }.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      const body = pm.response.json();
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+
+      const style = pm.variables.get("style_code");
+      const nodes = body.data.products.nodes;
+      pm.test(`filtro applicato: ogni product ha aqz.style_code = ${style}`, () => {
+        // Se fallisce con product di altri style, la definition aqz.style_code non ha
+        // la capability adminFilterable attiva: senza, Shopify ignora il filtro in silenzio.
+        nodes.forEach((p) => pm.expect(p.styleCode && p.styleCode.value, p.handle).to.eql(style));
+      });
+      pm.test("una sola pagina (first: 250 copre lo style)", () => pm.expect(body.data.products.pageInfo.hasNextPage).to.be.false);
+
+      console.log(`${nodes.length} colorway per ${style}:`, nodes.map((p) => p.modelColorSku && p.modelColorSku.value));
+      console.log("colorway_ids (da copiare nell'environment per SetColorways):", JSON.stringify(nodes.map((p) => p.id)));
+    language: text/javascript
+order: 8000

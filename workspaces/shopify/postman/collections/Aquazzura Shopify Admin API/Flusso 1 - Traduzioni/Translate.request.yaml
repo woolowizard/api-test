@@ -1,0 +1,51 @@
+$kind: http-request
+description: |-
+  Step 1.5 b del documento: registra i valori negli altri locale (it, de, es, fr, zh-CN) agganciandoli al valore primario con `key` + `translatableContentDigest`. Se il valore EN è cambiato dopo TranslatableContent il digest non corrisponde più e la traduzione viene rifiutata: la sequenza va ripetuta dopo che scritture primarie e cancellazioni dei campi tradotti sono complete (SyncProduct, SetProductMetafields, metaobjectUpsert).
+
+  La mutation non è parziale: un solo userError fa fallire tutte le voci dell'array. `handle` resta fuori dall'array (un valore identico al primario è rifiutato con "is already taken as a handle"). Il `title` è composto da DataNext (nome style + label colore nel locale): cambiare la label di un colore invalida il title di tutte le colorway che lo referenziano.
+
+  L'esempio registra `translation_key` = `translation_value` nel locale `translation_locale` sulla risorsa di TranslatableContent, da cui il pre-request prende il digest.
+
+  Scope: `write_translations`.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: beforeRequest
+    code: |-
+      const fail = (message) => { console.error(message); if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest(); fail(message); };
+        // Risorsa traducibile: translatable_resource_id (product, metafield, metaobject, option o option value), altrimenti il product.
+      if (!pm.variables.get("translatable_resource_id")) {
+        const productId = pm.variables.get("product_id");
+        if (!productId) fail("manca translatable_resource_id oppure product_id (lancia SyncProduct o ProductByModelColorSku)");
+        pm.variables.set("translatable_resource_id", productId);
+      }
+
+        // Il digest è quello del valore primario corrente, letto da TranslatableContent sulla stessa risorsa.
+        const key = pm.variables.get("translation_key");
+        let saved = null;
+        try { saved = JSON.parse(pm.variables.get("translatable_content") || "null"); } catch (e) { saved = null; }
+        if (!saved || saved.resourceId !== pm.variables.get("translatable_resource_id")) {
+          fail("lancia prima TranslatableContent su " + pm.variables.get("translatable_resource_id"));
+        }
+        const entry = saved.content.find((c) => c.key === key);
+        if (!entry || !entry.digest) fail("la risorsa non ha un campo traducibile \"" + key + "\": disponibili " + saved.content.map((c) => c.key).join(", "));
+        pm.variables.set("translation_digest", entry.digest);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.translationsRegister) || {};
+      pm.test("userErrors vuoto", () => pm.expect(payload.userErrors, JSON.stringify(payload.userErrors)).to.be.an("array").that.is.empty);
+      pm.test("traduzione registrata", () => pm.expect(payload.translations || []).to.have.lengthOf(1));
+      console.log(JSON.stringify(payload.translations));
+    language: text/javascript
+order: 2000

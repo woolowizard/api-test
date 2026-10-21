@@ -1,0 +1,40 @@
+$kind: http-request
+description: |-
+  Step 1.5 a del documento: per ogni campo traducibile della risorsa restituisce `key`, valore primario (EN) e `digest`, l'impronta che Translate deve citare. In più le traduzioni già registrate nel locale `translation_locale`, con il flag `outdated` (valore primario cambiato dopo la registrazione).
+
+  La risorsa è `translatable_resource_id`; se vuota, il `product_id` corrente. Per i metafield `aqz.*` (style_name, h2, details, ...) e per nome e valori dell'opzione `Size` la risorsa è il loro gid, stampato da ProductByModelColorSku. Il test salva `translatable_content` per Translate.
+
+  Scope: `read_translations` (l'app di organizzazione oggi non lo ha).
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: beforeRequest
+    code: |-
+      const fail = (message) => { console.error(message); if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest(); fail(message); };
+      // Risorsa traducibile: translatable_resource_id (product, metafield, metaobject, option o option value), altrimenti il product.
+      if (!pm.variables.get("translatable_resource_id")) {
+        const productId = pm.variables.get("product_id");
+        if (!productId) fail("manca translatable_resource_id oppure product_id (lancia SyncProduct o ProductByModelColorSku)");
+        pm.variables.set("translatable_resource_id", productId);
+      }
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const resource = body.data && body.data.translatableResource;
+      pm.test("risorsa traducibile trovata", () => pm.expect(resource).to.not.be.null);
+      if (!resource) return;
+      pm.environment.set("translatable_content", JSON.stringify({ resourceId: resource.resourceId, content: resource.translatableContent }));
+      console.log("campi traducibili:", resource.translatableContent.map((c) => c.key + " (digest " + String(c.digest).slice(0, 8) + "...)").join(", "));
+      console.log("traduzioni " + pm.variables.get("translation_locale") + ":", JSON.stringify(resource.translations));
+    language: text/javascript
+order: 1000

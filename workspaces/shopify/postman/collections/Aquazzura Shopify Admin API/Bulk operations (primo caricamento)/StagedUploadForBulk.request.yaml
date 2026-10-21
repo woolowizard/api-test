@@ -1,0 +1,33 @@
+$kind: http-request
+description: |-
+  Primo caricamento massivo (Regole trasversali del documento), passo 1 di 5: chiede a Shopify una destinazione firmata per il file JSONL delle variabili (`resource: BULK_MUTATION_VARIABLES`, `mimeType: text/jsonl`, `httpMethod: POST`). La risposta porta `url` e i `parameters` da inviare nel form multipart; il parametro `key` è lo `stagedUploadPath` che serve a RunBulkProductSet.
+
+  Il test salva `staged_upload_url`, `staged_upload_params` e `staged_upload_path`. Il target firmato scade dopo pochi minuti: UploadBulkFile va lanciato subito dopo.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.stagedUploadsCreate) || {};
+      pm.test("userErrors vuoto", () => pm.expect(payload.userErrors, JSON.stringify(payload.userErrors)).to.be.an("array").that.is.empty);
+      const target = (payload.stagedTargets || [])[0];
+      pm.test("staged target ricevuto", () => pm.expect(target && target.url).to.be.a("string"));
+      if (!target) return;
+      const key = (target.parameters.find((p) => p.name === "key") || {}).value;
+      pm.test("parametro key presente (stagedUploadPath)", () => pm.expect(key).to.be.a("string"));
+      pm.environment.set("staged_upload_url", target.url);
+      pm.environment.set("staged_upload_params", JSON.stringify(target.parameters));
+      pm.environment.set("staged_upload_path", key);
+      console.log("staged_upload_path:", key);
+    language: text/javascript
+order: 1000

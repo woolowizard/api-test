@@ -1,0 +1,80 @@
+$kind: collection
+description: |-
+  Chiamate Admin GraphQL API dello store Aquazzura, allineate al documento "Integrazione DataNext - Shopify: dettaglio chiamate" (v1.5, API 2026-07): una cartella per flusso, una richiesta per operazione con lo stesso nome e la stessa query del documento, più le letture di supporto che ricavano i gid dalle chiavi naturali.
+
+  Nessun valore dipendente dall'ambiente è nelle richieste: dominio e credenziali stanno nell'environment Postman (template in postman/environments/example.postman_environment.json). Il token Admin viene ottenuto con il client credentials grant e salvato in `admin_token`; la richiesta "Get access token" lo fa in modo esplicito, il pre-request script della collection lo rinnova da solo quando manca o è scaduto. I gid prodotti da una chiamata (product, metaobject, file, bulk operation) vengono salvati dai test nell'environment e riusati dalle chiamate successive: la sequenza di ogni cartella si può lanciare nel Collection Runner nell'ordine in cui è elencata.
+
+  Variabili di collection: `api_version` (deve coincidere con API_VERSION in scripts/lib/client.js) e i valori di esempio (`model_color_sku`, `color_code`, `size_guide_handle`, `style_code`, immagine, traduzione, file bulk). Ogni test verifica HTTP 200, assenza di `errors` e, per le mutation, `userErrors` vuoto; lo script di test della collection stampa il costo in punti di ogni chiamata (`extensions.cost`).
+variables:
+  api_version: 2026-07
+  style_code: TWIHIGS0
+  model_color_sku: AANHIGP0-SFE-000
+  color_code: "000"
+  size_guide_handle: shoes
+  image_source_url: https://cdn.shopify.com/static/sample-images/shoes.jpeg
+  image_filename: AANHIGP0-SFE-000_02.jpeg
+  image_alt: Alana Pump 105 - Black - view 02
+  translation_locale: it
+  translation_key: title
+  translation_value: Alana Pump 105 Nero
+  bulk_filename: products.jsonl
+scripts:
+  - type: http:beforeRequest
+    code: |-
+      // Token automatico: se admin_token manca o è scaduto lo ottiene con il client
+      // credentials grant e lo salva nell'environment. Vale solo per le chiamate Admin API
+      // dello store: salta "Get access token" (che fa la stessa cosa in modo esplicito) e le
+      // richieste verso lo storage esterno della cartella bulk (upload del JSONL, download del risultato).
+      if (!String(pm.request.url.getPath() || "").startsWith("/admin/api/")) return;
+
+      const token = pm.variables.get("admin_token");
+      const expiresAt = Number(pm.variables.get("admin_token_expires_at") || 0);
+      if (token && Date.now() < expiresAt - 60 * 1000) return;
+
+      const missing = ["store_domain", "client_id", "client_secret"].filter((k) => !pm.variables.get(k));
+      if (missing.length > 0) throw new Error("Environment incompleto: manca " + missing.join(", "));
+
+      pm.sendRequest({
+        url: "https://" + pm.variables.get("store_domain") + "/admin/oauth/access_token",
+        method: "POST",
+        header: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: {
+          mode: "urlencoded",
+          urlencoded: [
+            { key: "grant_type", value: "client_credentials" },
+            { key: "client_id", value: pm.variables.get("client_id") },
+            { key: "client_secret", value: pm.variables.get("client_secret") },
+          ],
+        },
+      }, (err, res) => {
+        if (err || res.code !== 200) throw new Error("token non ottenuto: " + (err || (res.code + " " + res.text())));
+        const body = res.json();
+        pm.environment.set("admin_token", body.access_token);
+        pm.environment.set("admin_token_expires_at", String(Date.now() + (body.expires_in || 86400) * 1000));
+        console.log("token rinnovato, scope:", body.scope);
+      });
+    language: text/javascript
+  - type: http:afterResponse
+    code: |-
+      // Rate limit a punti: ogni risposta GraphQL porta extensions.cost, il dato su cui DataNext regola il ritmo di invio.
+      try {
+        const body = pm.response.json();
+        const cost = body && body.extensions && body.extensions.cost;
+        if (cost) {
+          const t = cost.throttleStatus || {};
+          console.log("cost " + cost.actualQueryCost + "/" + cost.requestedQueryCost + " punti, disponibili " + t.currentlyAvailable + "/" + t.maximumAvailable + " (+" + t.restoreRate + "/s)");
+        }
+        const denied = ((body && body.errors) || []).filter((e) => /access denied/i.test(e.message));
+        if (denied.length > 0) console.warn("scope mancante sull'app (nuova versione + reinstallazione, vedi README):", denied.map((e) => e.message).join(" | "));
+      } catch (e) {
+        // risposta non JSON (upload e download bulk)
+      }
+    language: text/javascript
+auth:
+  - id: 40f26bab-be25-439f-bbde-c2c28c4cd11b
+    type: apikey
+    name: apikey auth
+    credentials:
+      key: X-Shopify-Access-Token
+      value: "{{admin_token}}"
+      in: header

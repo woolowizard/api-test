@@ -1,0 +1,3 @@
+$kind: collection
+description: "Autenticazione: client credentials grant dell'app di organizzazione (Dev Dashboard) installata sullo store. Il token dura 24 ore ed è scoped allo store del dominio interrogato."
+order: 1000

@@ -1,0 +1,64 @@
+$kind: http-request
+description: |-
+  Step 1.2 c del documento v1.5: rimuove con `metafieldsDelete` solo i campi `aqz` dichiarati esplicitamente in `product_metafield_keys_to_delete` (JSON array di chiavi, `ownerId` = `product_id`, per esempio `["designer_tips"]`). Il default `[]` salta la richiesta, anche nel Runner: un campo assente o vuoto non è una cancellazione implicita.
+
+  `aqz.model_color_sku` e `aqz.colorways` sono esclusi (chiave di sync e SetColorways). Non dichiarare la stessa chiave anche negli aggiornamenti dello stesso sync.
+
+  La cancellazione è idempotente: un metafield già assente torna `deletedMetafields` null ed è un successo. Non tradurre i metafield rimossi. Dopo l'uso, riportare `product_metafield_keys_to_delete` a `[]` per non riapplicare lo stesso piano a un altro product.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: beforeRequest
+    code: |-
+      const fail = (message) => {
+        console.error(message);
+        if (pm.execution && pm.execution.setNextRequest) pm.execution.setNextRequest(null);
+        if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest();
+        throw new Error(message);
+      };
+      let keys;
+      try { keys = JSON.parse(pm.variables.get("product_metafield_keys_to_delete") || "[]"); } catch (e) { fail("product_metafield_keys_to_delete deve essere un JSON array di chiavi"); }
+      if (!Array.isArray(keys)) fail("product_metafield_keys_to_delete deve essere un JSON array di chiavi");
+      if (keys.length === 0) {
+        console.log("nessuna rimozione esplicita: DeleteProductMetafields saltata");
+        if (pm.execution && pm.execution.skipRequest) { pm.execution.skipRequest(); return; }
+        throw new Error("nessuna rimozione esplicita: escludi DeleteProductMetafields dal Runner");
+      }
+      const productId = pm.variables.get("product_id");
+      if (!productId) fail("manca product_id: lancia prima SyncProduct o ProductByModelColorSku");
+      if (keys.length > 250) fail("suddividi le cancellazioni in batch di massimo 250 chiavi");
+      if (new Set(keys).size !== keys.length) fail("chiavi duplicate nelle cancellazioni");
+      keys.forEach((key) => {
+        if (typeof key !== "string" || !/^[a-zA-Z0-9_-]+$/.test(key)) fail("indica solo chiavi aqz esplicite, per esempio designer_tips");
+        if (["model_color_sku", "colorways"].includes(key)) fail("aqz." + key + " è escluso dalle cancellazioni ordinarie");
+      });
+      pm.variables.set("product_metafields_to_delete", JSON.stringify(keys.map((key) => ({ ownerId: productId, namespace: "aqz", key }))));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.metafieldsDelete) || {};
+      pm.test("userErrors vuoto", () => pm.expect(payload.userErrors, JSON.stringify(payload.userErrors)).to.be.an("array").that.is.empty);
+      if (pm.response.code !== 200 || body.errors || !Array.isArray(payload.userErrors) || payload.userErrors.length > 0) {
+        if (pm.execution && pm.execution.setNextRequest) pm.execution.setNextRequest(null);
+        return;
+      }
+      const expected = JSON.parse(pm.variables.get("product_metafields_to_delete"));
+      pm.test("rimozioni riuscite, inclusi i metafield già assenti", () => {
+        pm.expect(payload.deletedMetafields).to.be.an("array").with.lengthOf(expected.length);
+        payload.deletedMetafields.forEach((deleted) => {
+          if (deleted === null) return; // Già assente: retry idempotente riuscito.
+          pm.expect(expected.some((field) => field.ownerId === deleted.ownerId && field.namespace === deleted.namespace && field.key === deleted.key)).to.eql(true);
+        });
+      });
+    language: text/javascript
+order: 6000

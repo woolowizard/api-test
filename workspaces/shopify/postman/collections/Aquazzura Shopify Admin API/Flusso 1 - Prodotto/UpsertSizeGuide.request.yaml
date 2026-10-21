@@ -1,0 +1,29 @@
+$kind: http-request
+description: |-
+  Step 1.1 b del documento: vocabolario scalerino. L'handle è il codice scalerino del PIM (`size_chart`, lowercase), il product lo referenzia col metafield `aqz.size_guide`.
+
+  `conversion_table` è un campo `json` e viaggia come stringa serializzata; `guide_content` è un `rich_text_field` translatable nella lingua primaria (EN), le altre lingue si registrano con Translate sul gid del metaobject. Il test salva il gid in `size_guide_metaobject_id`.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.metaobjectUpsert) || {};
+      pm.test("userErrors vuoto", () => pm.expect(payload.userErrors, JSON.stringify(payload.userErrors)).to.be.an("array").that.is.empty);
+      pm.test("metaobject scritto con l'handle atteso", () => pm.expect(payload.metaobject && payload.metaobject.handle).to.eql(pm.variables.get("size_guide_handle")));
+      if (payload.metaobject) {
+        pm.environment.set("size_guide_metaobject_id", payload.metaobject.id);
+        console.log("size_guide_metaobject_id:", payload.metaobject.id, payload.metaobject.displayName);
+      }
+    language: text/javascript
+order: 2000

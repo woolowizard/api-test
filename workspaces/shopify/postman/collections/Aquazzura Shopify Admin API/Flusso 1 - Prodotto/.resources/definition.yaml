@@ -1,0 +1,6 @@
+$kind: collection
+description: |-
+  Flusso 1 del documento DataNext v1.5, step 1.1-1.3: UpsertColor e UpsertSizeGuide, SyncProduct (soli campi nativi), SetProductMetafields (batch custom <= 25), DeleteProductMetafields (solo rimozioni esplicite), SetColorways (alla costruzione della relazione o quando cambia). ResolveVocabularies, ProductByModelColorSku e ColorwaysByStyle sono letture di supporto per ricavare i gid dalle chiavi naturali.
+
+  Ogni fase può essere ritentata separatamente; le traduzioni seguono le scritture primarie riuscite. Scope: write_products, write_metaobjects.
+order: 2000

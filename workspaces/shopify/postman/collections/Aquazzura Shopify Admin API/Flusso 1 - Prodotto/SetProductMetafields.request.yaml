@@ -1,0 +1,92 @@
+$kind: http-request
+description: |-
+  Step 1.2 b del documento v1.5: scrive con `metafieldsSet` i soli metafield custom indicati (`ownerId` + `namespace` + `key`); i campi non passati restano invariati. `ownerId` è `product_id`, da SyncProduct o ProductByModelColorSku. `aqz.model_color_sku` resta in `identifier.customId`, `aqz.colorways` lo scrive SetColorways.
+
+  I gid di color e size_guide, se mancano nell'environment e sono richiesti dal batch, li risolve il pre-request. Massimo 25 metafield per chiamata (payload 10 MB): oltre, servono più batch distinti.
+
+  Ogni batch è atomico ma indipendente da SyncProduct e dagli altri batch: il retry va fatto per batch, non ripetendo l'intera sequenza (dettagli in README). Non dichiarare nello stesso sync una chiave anche in `product_metafield_keys_to_delete`: un campo assente, null o vuoto non equivale a una cancellazione.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: beforeRequest
+    code: |-
+      const fail = (message) => {
+        console.error(message);
+        if (pm.execution && pm.execution.setNextRequest) pm.execution.setNextRequest(null);
+        if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest();
+        throw new Error(message);
+      };
+      const productId = pm.variables.get("product_id");
+      if (!productId) fail("manca product_id: lancia prima SyncProduct o ProductByModelColorSku");
+      const fields = JSON.parse(pm.request.body.graphql.variables).metafields;
+      if (!Array.isArray(fields) || fields.length === 0 || fields.length > 25) fail("metafieldsSet richiede un batch da 1 a 25 metafield; suddividi i campi su più chiamate");
+      let deletions;
+      try { deletions = JSON.parse(pm.variables.get("product_metafield_keys_to_delete") || "[]"); } catch (e) { fail("product_metafield_keys_to_delete deve essere un JSON array di chiavi"); }
+      if (!Array.isArray(deletions)) fail("product_metafield_keys_to_delete deve essere un JSON array di chiavi");
+      const keys = new Set();
+      fields.forEach((field) => {
+        if (pm.variables.replaceIn(field.ownerId || "") !== productId) fail("ownerId deve coincidere con product_id per questo batch");
+        if (field.namespace !== "aqz" || typeof field.key !== "string" || !field.key.trim()) fail("indica namespace aqz e una chiave custom DataNext esplicita");
+        if (["model_color_sku", "colorways"].includes(field.key)) fail("aqz." + field.key + " è gestito da identifier.customId o SetColorways");
+        if (typeof field.value !== "string") fail("il valore di aqz." + field.key + " deve essere una stringa; le rimozioni si dichiarano in DeleteProductMetafields");
+        if (keys.has(field.key)) fail("chiave duplicata nel batch: aqz." + field.key);
+        if (deletions.includes(field.key)) fail("aqz." + field.key + " è presente sia nel batch di aggiornamento sia nelle cancellazioni");
+        keys.add(field.key);
+      });
+      // Risolve soltanto i riferimenti ai vocabolari effettivamente usati dal batch.
+      const references = [
+        { variable: "color_metaobject_id", alias: "color" },
+        { variable: "size_guide_metaobject_id", alias: "sizeGuide" },
+      ].filter((ref) => fields.some((field) => field.value === "{{" + ref.variable + "}}") && !pm.variables.get(ref.variable));
+      if (references.length === 0) return;
+      pm.sendRequest({
+        url: "https://" + pm.variables.get("store_domain") + "/admin/api/" + pm.variables.get("api_version") + "/graphql.json",
+        method: "POST",
+        header: { "Content-Type": "application/json", "X-Shopify-Access-Token": pm.variables.get("admin_token") },
+        body: { mode: "raw", raw: JSON.stringify({
+          query: "query($color: MetaobjectHandleInput!, $sizeGuide: MetaobjectHandleInput!) { color: metaobjectByHandle(handle: $color) { id } sizeGuide: metaobjectByHandle(handle: $sizeGuide) { id } }",
+          variables: {
+            color: { type: "color", handle: String(pm.variables.get("color_code")).trim().toLowerCase() },
+            sizeGuide: { type: "size_guide", handle: pm.variables.get("size_guide_handle") },
+          },
+        }) },
+      }, (err, res) => {
+        if (err || res.code !== 200) fail("risoluzione dei metaobject fallita: " + (err || res.code));
+        const result = res.json();
+        if (result.errors) fail("risoluzione dei metaobject fallita: " + JSON.stringify(result.errors));
+        references.forEach((ref) => {
+          const object = result.data && result.data[ref.alias];
+          if (!object || !object.id) fail("metaobject " + ref.alias + " assente: lancia UpsertColor / UpsertSizeGuide o ResolveVocabularies");
+          pm.environment.set(ref.variable, object.id);
+        });
+      });
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.metafieldsSet) || {};
+      pm.test("userErrors vuoto", () => pm.expect(payload.userErrors, JSON.stringify(payload.userErrors)).to.be.an("array").that.is.empty);
+      if (pm.response.code !== 200 || body.errors || !Array.isArray(payload.userErrors) || payload.userErrors.length > 0) {
+        if (pm.execution && pm.execution.setNextRequest) pm.execution.setNextRequest(null);
+        return;
+      }
+      const expected = JSON.parse(pm.variables.replaceIn(pm.request.body.graphql.variables)).metafields;
+      pm.test("scritti tutti i metafield del batch", () => {
+        pm.expect(payload.metafields).to.be.an("array").with.lengthOf(expected.length);
+        expected.forEach((field) => {
+          const written = payload.metafields.find((m) => m.namespace === field.namespace && m.key === field.key);
+          pm.expect(written, field.namespace + "." + field.key).to.be.an("object");
+        });
+      });
+      console.log("metafield scritti (gid per Translate):", (payload.metafields || []).map((m) => m.namespace + "." + m.key + " = " + m.id).join("\n"));
+    language: text/javascript
+order: 5000

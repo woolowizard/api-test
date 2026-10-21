@@ -1,0 +1,43 @@
+$kind: http-request
+description: |-
+  Step 1.3 del documento: su ogni colorway dello style la lista completa delle sibling, sé stessa inclusa, ordine = ordine swatch del PIM. Una chiamata batch per style, massimo 25 metafield per chiamata; riscrittura full e idempotente, mai append o remove puntuali.
+
+  Da eseguire alla prima costruzione della relazione o quando cambiano composizione o ordine delle sibling. SyncProduct omette input.metafields e preserva aqz.colorways: un aggiornamento dei soli attributi non richiede di riscrivere la relazione. Il pre-request costruisce l'array `metafields` da `colorway_ids` (JSON array di gid product nell'environment, ColorwaysByStyle li stampa in console) oppure, se assente, dal solo `product_id`.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: beforeRequest
+    code: |-
+      const fail = (message) => { console.error(message); if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest(); fail(message); };
+      // Lista completa delle sibling dello style (sé stessa inclusa): da colorway_ids se impostato, altrimenti il solo product_id.
+      let ids = [];
+      try { ids = JSON.parse(pm.variables.get("colorway_ids") || "[]"); } catch (e) { fail("colorway_ids non è un JSON array valido"); }
+      if (ids.length === 0) {
+        const productId = pm.variables.get("product_id");
+        if (!productId) fail("manca product_id (lancia SyncProduct o ProductByModelColorSku) oppure colorway_ids");
+        ids = [productId];
+      }
+      if (ids.length > 25) fail("metafieldsSet accetta al massimo 25 metafield per chiamata: spezza le " + ids.length + " colorway su più chiamate");
+
+      const value = JSON.stringify(ids);
+      pm.variables.set("colorways_metafields", JSON.stringify(ids.map((ownerId) => ({ ownerId, namespace: "aqz", key: "colorways", value }))));
+      console.log("aqz.colorways su " + ids.length + " colorway:", value);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.metafieldsSet) || {};
+      pm.test("userErrors vuoto", () => pm.expect(payload.userErrors, JSON.stringify(payload.userErrors)).to.be.an("array").that.is.empty);
+      const expected = JSON.parse(pm.variables.get("colorways_metafields")).length;
+      pm.test("scritto un metafield per colorway (" + expected + ")", () => pm.expect(payload.metafields || []).to.have.lengthOf(expected));
+    language: text/javascript
+order: 9000

@@ -1,0 +1,40 @@
+$kind: http-request
+description: |-
+  Step 1.4 c del documento: aggancia i file READY alla gallery del product con un `productSet` dedicato a soli `identifier` + `files`. La lista è la gallery completa della colorway: per la semantica set un media non incluso viene staccato (è lo stesso meccanismo dello swap nell'aggiornamento di un asset). SyncProduct omette `files` e lascia la gallery invariata (comportamento a campo omesso da verificare sullo store di sviluppo, come indicato nel documento).
+
+  Il pre-request costruisce la lista da `media_ids` (gallery corrente, salvata da ProductByModelColorSku o da questa stessa chiamata) più `file_id` (nuovo ingest). Il test aggiorna `media_ids`. `productCreateMedia` non è un'alternativa: crea un doppione del file già ingerito.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: beforeRequest
+    code: |-
+      const fail = (message) => { console.error(message); if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest(); fail(message); };
+      // Gallery completa: media già associati (media_ids) più il file appena ingerito (file_id). Un media escluso viene staccato.
+      let ids = [];
+      try { ids = JSON.parse(pm.variables.get("media_ids") || "[]"); } catch (e) { fail("media_ids non è un JSON array valido"); }
+      const fileId = pm.variables.get("file_id");
+      if (fileId && !ids.includes(fileId)) ids.push(fileId);
+      if (ids.length === 0) fail("nessun media: lancia IngestImages (file_id) o ProductByModelColorSku (media_ids)");
+      pm.variables.set("gallery_files_json", JSON.stringify(ids.map((id) => ({ id }))));
+      console.log("gallery (" + ids.length + "):", JSON.stringify(ids));
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.productSet) || {};
+      pm.test("userErrors vuoto", () => pm.expect(payload.userErrors, JSON.stringify(payload.userErrors)).to.be.an("array").that.is.empty);
+      const media = ((payload.product || {}).media || { nodes: [] }).nodes;
+      const expected = JSON.parse(pm.variables.get("gallery_files_json")).map((f) => f.id);
+      pm.test("gallery = lista dichiarata (" + expected.length + " media)", () => pm.expect(media.map((m) => m.id).sort()).to.eql(expected.slice().sort()));
+      pm.environment.set("media_ids", JSON.stringify(media.map((m) => m.id)));
+    language: text/javascript
+order: 3000

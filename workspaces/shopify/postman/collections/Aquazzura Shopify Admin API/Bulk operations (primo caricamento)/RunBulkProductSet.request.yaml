@@ -1,0 +1,36 @@
+$kind: http-request
+description: |-
+  Passo 3 di 5: esegue il `productSet` del flusso 1 come singola operazione asincrona lato Shopify, fuori dal cost budget delle chiamate singole. `mutation` è la stessa SyncProduct con le variabili `$input` e `$id`; ogni riga del JSONL è l'oggetto delle variabili di una chiamata (`{"id": {"customId": ...}, "input": {...}}`), e come in SyncProduct `input.metafields` va omesso da ogni riga. Dai risultati riusciti si recuperano i `product.id` per SetProductMetafields (batch <= 25) e le eventuali rimozioni con DeleteProductMetafields; `aqz.colorways` si scrive con SetColorways a gid noti. Media e traduzioni seguono.
+
+  Una sola bulk mutation alla volta per shop. Il test salva `bulk_operation_id`; lo stato si polla con BulkOperationStatus.
+url: https://{{store_domain}}/admin/api/{{api_version}}/graphql.json
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: graphql
+  content:
+    query: ""
+scripts:
+  - type: beforeRequest
+    code: |-
+      const fail = (message) => { console.error(message); if (pm.execution && pm.execution.skipRequest) pm.execution.skipRequest(); fail(message); };
+      if (!pm.variables.get("staged_upload_path")) fail("manca staged_upload_path: lancia StagedUploadForBulk e UploadBulkFile");
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", () => pm.response.to.have.status(200));
+      let body = {};
+      try { body = pm.response.json(); } catch (e) { body = { errors: [{ message: "risposta non JSON: " + pm.response.text().slice(0, 300) }] }; }
+      pm.test("nessun errore GraphQL", () => pm.expect(body.errors, JSON.stringify(body.errors)).to.be.undefined);
+      const payload = (body.data && body.data.bulkOperationRunMutation) || {};
+      pm.test("userErrors vuoto", () => pm.expect(payload.userErrors, JSON.stringify(payload.userErrors)).to.be.an("array").that.is.empty);
+      const op = payload.bulkOperation || {};
+      pm.test("bulk operation creata", () => pm.expect(op.status).to.eql("CREATED"));
+      if (op.id) {
+        pm.environment.set("bulk_operation_id", op.id);
+        pm.environment.unset("bulk_result_url");
+        console.log("bulk_operation_id:", op.id, op.status);
+      }
+    language: text/javascript
+order: 3000

@@ -1,0 +1,50 @@
+name: aquazzura-<nome-ambiente>
+values:
+  - key: store_domain
+    value: il-tuo-store.myshopify.com
+  - key: client_id
+    value: ''
+  - key: client_secret
+    value: ''
+  - key: admin_token
+    value: ''
+  - key: admin_token_expires_at
+    value: ''
+  - key: product_id
+    value: ''
+  - key: product_metafield_keys_to_delete
+    value: '[]'
+  - key: color_metaobject_id
+    value: ''
+  - key: size_guide_metaobject_id
+    value: ''
+  - key: colorway_ids
+    value: ''
+  - key: file_id
+    value: ''
+  - key: media_ids
+    value: ''
+  - key: old_file_id
+    value: ''
+  - key: translatable_resource_id
+    value: ''
+  - key: translatable_content
+    value: ''
+  - key: staged_upload_url
+    value: ''
+  - key: staged_upload_params
+    value: ''
+  - key: staged_upload_path
+    value: ''
+  - key: bulk_operation_id
+    value: ''
+  - key: bulk_result_url
+    value: ''
+  - key: auth_url_path
+    value: ''
+  - key: auth_client_id
+    secret: true
+  - key: auth_client_secret
+    secret: true
+  - key: auth_grant_type
+    secret: true
