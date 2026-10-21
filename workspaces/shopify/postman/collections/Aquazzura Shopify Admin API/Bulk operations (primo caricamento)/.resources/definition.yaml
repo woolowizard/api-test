@@ -1,3 +1,0 @@
-$kind: collection
-description: "Primo caricamento massivo (Regole trasversali del documento): migliaia di product non si caricano con chiamate sincrone una per colorway. Sequenza: StagedUploadForBulk (destinazione firmata), UploadBulkFile (POST multipart del JSONL, fuori dalla Admin API), RunBulkProductSet (bulkOperationRunMutation con il productSet del flusso 1), BulkOperationStatus (poll), DownloadBulkResult (verifica riga per riga). File di esempio: postman/samples/products.jsonl."
-order: 5000

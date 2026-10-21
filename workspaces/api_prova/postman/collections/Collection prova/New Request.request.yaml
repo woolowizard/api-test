@@ -1,7 +1,0 @@
-$kind: http-request
-url: https://pippo.paperino.it/api/v1/product-data/products/sku:ALBFLAA0-SSY-CCC?showInheritedAttributes=true&ciccio
-method: GET
-queryParams:
-  showInheritedAttributes: "true"
-  ciccio: null
-order: 1000

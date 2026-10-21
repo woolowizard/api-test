@@ -1,6 +1,0 @@
-$kind: collection
-description: |-
-  Flusso 1 del documento DataNext, step 1.5: TranslatableContent (key e digest del valore primario EN) e Translate (translationsRegister nei locale it, de, es, fr, zh-CN). Da ripetere dopo la scrittura primaria dei campi tradotti (SyncProduct, SetProductMetafields o metaobjectUpsert), completati i batch e le eventuali cancellazioni: il digest cambia con il valore primario. Risorse coinvolte: product (title, body_html, meta_title, meta_description), metafield aqz.* translatable, campi dei metaobject, nome e valori dell'opzione Size.
-
-  Scope: read_translations e write_translations. L'app di organizzazione oggi non li ha.
-order: 4000
