@@ -1,0 +1,6 @@
+$kind: http-request
+name: https://pippo.com
+description: ""
+url: https://pippo.com
+method: GET
+order: 1000
