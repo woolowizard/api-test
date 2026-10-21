@@ -1,0 +1,4 @@
+$kind: http-request
+url: tes
+method: GET
+order: 1000
