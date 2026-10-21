@@ -1,5 +1,0 @@
-$kind: http-request
-url: https://{{base_url}}/data-api/v3/topsearch/rank
-method: GET
-settings: {}
-order: 1000
