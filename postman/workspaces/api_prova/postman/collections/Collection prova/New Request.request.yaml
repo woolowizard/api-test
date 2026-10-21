@@ -1,0 +1,6 @@
+$kind: http-request
+url: https://pippo.paperino.it/api/v1/product-data/products/sku:ALBFLAA0-SSY-CCC?showInheritedAttributes=true
+method: GET
+queryParams:
+  showInheritedAttributes: "true"
+order: 1000
