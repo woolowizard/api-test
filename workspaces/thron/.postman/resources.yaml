@@ -7,6 +7,7 @@ workspace:
 cloudResources:
   collections:
     ../postman/collections/product-data: 3a21c7a3-99ae-4246-8b90-298e1d46af80
+    ../postman/collections/authentication: 69e271ef-fe32-42c5-8994-51ffd28350c5
 
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:

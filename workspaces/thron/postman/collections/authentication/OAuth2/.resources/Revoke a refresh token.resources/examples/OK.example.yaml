@@ -1,0 +1,22 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/authentication/oauth2/revoke"
+  method: POST
+  headers:
+    Content-Type: application/x-www-form-urlencoded
+  body:
+    type: urlencoded
+    content:
+      - key: token
+        value: string
+        description: The refresh token to revoke
+      - key: token_type_hint
+        value: refresh_token
+        description: The token type provided (only 'refresh_token' supported)
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: text
+    content: ""
+order: 1000

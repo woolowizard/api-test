@@ -1,0 +1,33 @@
+$kind: http-request
+description: Start the OAuth2 process for user with login page
+url: "{{baseUrl}}/authentication/oauth2/auth?client_id=string&redirect_uri=string&state=string&scope=string&response_type=string&code_challenge=string&code_challenge_method=string&nonce=string"
+method: GET
+headers:
+  Accept: "*/*"
+queryParams:
+  - key: client_id
+    value: string
+    description: The clientId of the application
+  - key: redirect_uri
+    value: string
+    description: The redirect uri to send the code to
+  - key: state
+    value: string
+    description: The state check param
+  - key: scope
+    value: string
+    description: The scope of the JWT token
+  - key: response_type
+    value: string
+    description: The response type (only code supported)
+  - key: code_challenge
+    value: string
+    description: The code challenge for PKCE
+  - key: code_challenge_method
+    value: string
+    description: The code challenge method for PKCE
+  - key: nonce
+    value: string
+    description: The nonce check param
+examples: ./.resources/Start the OAuth2 process for user with login page.resources/examples
+order: 1000

@@ -1,0 +1,48 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/authentication/userinfo"
+  method: GET
+  headers:
+    - key: Accept
+      value: application/json
+    - key: Authorization
+      value: <API Key>
+      description: "Added as a part of security scheme: apikey"
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "address": "string",
+        "aud": "string",
+        "birthdate": "string",
+        "email": "string",
+        "email_verified": "string",
+        "exp": 5633,
+        "family_name": "string",
+        "gender": "string",
+        "given_name": "string",
+        "iat": 3729,
+        "iss": "string",
+        "jti": "string",
+        "locale": "string",
+        "middle_name": "string",
+        "name": "string",
+        "nbf": 9474,
+        "nickname": "string",
+        "nonce": "string",
+        "phone_number": "string",
+        "phone_number_verified": "string",
+        "picture": "string",
+        "preferred_username": "string",
+        "profile": "string",
+        "scope": "string",
+        "sub": "string",
+        "website": "string",
+        "zoneinfo": "string"
+      }
+order: 1000

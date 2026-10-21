@@ -1,0 +1,4 @@
+$kind: collection
+description: Authentication APIs are required to obtain a JWT token to use the THRON API according to the OAuth2 standard.
+variables:
+  baseUrl: https://examples.thron.com/api/v1

@@ -1,4 +1,12 @@
 name: ENV DEV
 values:
-  - key: pippo
+  - key: inb_auth_client_id
+    secret: true
+  - key: inb_auth_grant_type
+    secret: true
+  - key: inb_auth_client_secret
+    secret: true
+  - key: inb_auth_subject
+    secret: true
+  - key: base_url
     value: ''

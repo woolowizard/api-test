@@ -1,4 +1,0 @@
-name: ENV PROD
-values:
-  - key: pluto
-    value: ''

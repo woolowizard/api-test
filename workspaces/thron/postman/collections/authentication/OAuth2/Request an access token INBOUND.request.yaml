@@ -1,0 +1,54 @@
+$kind: http-request
+description: This method allows to obtain an access token.
+url: "{{baseUrl}}/authentication/oauth2/token"
+method: POST
+headers:
+  Content-Type: application/x-www-form-urlencoded
+  Accept: application/json
+body:
+  type: urlencoded
+  content:
+    - key: client_id
+      value: 934079bea24e7321da731a92cec687301580767a9b27a8be1eecd4d744ec186c
+      description: Application identification key. Is an id generated during application registration. Must be requested to the THRON support team.
+    - key: client_secret
+      value: 03c685345c6963d7c9266b0a104b4cc20aaaf63c789563bb7788f34b0f9d08dd
+      description: The clientSecret of the application. It is an application password. It must be requested to the THRON support team.
+    - key: grant_type
+      value: urn:thron:oauth:user-impersonation
+      description: |-
+        Grant types are ways for applications to obtain Access Tokens, allowing them to access your resources in a limited way without revealing your login credentials.
+        Available values : client_credentials, authorization_code, urn:thron:oauth:user-impersonation, refresh_token
+    - key: subject
+      value: app.inbound
+      description: "Username of the user to impersonate. It is used together with the client_id and client_secret. To be entered only when grant_type: urn:thron:oauth:user-impersonation."
+    - key: scope
+      value: string
+      disabled: true
+      description: |-
+        Specific types of information an application can request. Currently, only the
+        Available values : phone, profile, email, address
+    - key: refresh_token
+      value: string
+      disabled: true
+      description: Is a token paired with a JWT, allowing you to get a new JWT without redoing the authorization process.
+scripts:
+  - type: afterResponse
+    code: "// Parsing della risposta JSON\r
+
+      let response = pm.response.json();\r
+
+      \r
+
+      // Salva il token nell'environment attivo\r
+
+      pm.environment.set(\r
+
+      \    \"token_aquazzura_thron_INBOUND\",\r
+
+      \    response.access_token\r
+
+      );"
+    language: text/javascript
+examples: ./.resources/Request an access token INBOUND.resources/examples
+order: 5000

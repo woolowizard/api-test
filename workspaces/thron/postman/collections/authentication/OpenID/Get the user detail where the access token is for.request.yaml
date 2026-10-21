@@ -1,0 +1,10 @@
+$kind: http-request
+description: Get the user detail where the access token is for
+url: "{{baseUrl}}/authentication/userinfo"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: noauth
+examples: ./.resources/Get the user detail where the access token is for.resources/examples
+order: 2000

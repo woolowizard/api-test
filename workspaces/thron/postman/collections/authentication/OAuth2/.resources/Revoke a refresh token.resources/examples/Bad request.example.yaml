@@ -1,0 +1,39 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/authentication/oauth2/revoke"
+  method: POST
+  headers:
+    Content-Type: application/x-www-form-urlencoded
+    Accept: application/json
+  body:
+    type: urlencoded
+    content:
+      - key: token
+        value: string
+        description: The refresh token to revoke
+      - key: token_type_hint
+        value: refresh_token
+        description: The token type provided (only 'refresh_token' supported)
+response:
+  statusCode: 400
+  statusText: Bad Request
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "status": 8177,
+        "title": "string",
+        "violations": [
+          {
+            "message": "MyAttribute must be longer than 50",
+            "field": "MyAttribute"
+          },
+          {
+            "message": "MyAttribute must be longer than 50",
+            "field": "MyAttribute"
+          }
+        ]
+      }
+order: 2000
